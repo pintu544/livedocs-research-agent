@@ -8,6 +8,19 @@ export interface Source {
   kind: SourceKind;
 }
 
+export interface RepoHealth {
+  fullName: string;
+  /** 0–100 composite maintenance score. */
+  score: number;
+  daysSinceRelease: number | null;
+  avgReleaseGapDays: number | null;
+  openIssues: number | null;
+  lastPushDaysAgo: number | null;
+  archived: boolean;
+  /** Human-readable signals, e.g. "Release every ~34 days". */
+  signals: string[];
+}
+
 export interface EntityResult {
   name: string;
   docsUrl?: string;
@@ -18,6 +31,7 @@ export interface EntityResult {
   repoUrl?: string;
   lastUpdated?: string;
   summary?: string;
+  health?: RepoHealth;
   sources: Source[];
 }
 

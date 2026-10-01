@@ -24,6 +24,9 @@ export function reportToMarkdown(r: Report): string {
     lines.push(
       `- GitHub: ${e.repoUrl ?? "—"}${e.stars != null ? ` (${e.stars} stars)` : ""}`
     );
+    if (e.health) {
+      lines.push(`- Maintenance health: ${e.health.score}/100 (${e.health.signals.join("; ")})`);
+    }
     lines.push("");
   }
 

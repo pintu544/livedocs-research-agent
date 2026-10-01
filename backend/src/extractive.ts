@@ -1,4 +1,5 @@
 import type { ComparisonRow, EntityResult, Report } from "./types.js";
+import type { HeadToHead } from "./agent.js";
 
 function domain(url: string): string {
   try {
@@ -23,7 +24,8 @@ function fmtStars(n?: number): string {
 export function buildExtractiveReport(
   query: string,
   entities: EntityResult[],
-  creditsUsed: number
+  creditsUsed: number,
+  h2h?: HeadToHead
 ): Report {
   const comparisonTable: ComparisonRow[] = [
     {
@@ -43,22 +45,57 @@ export function buildExtractiveReport(
       values: entities.map((e) => fmtStars(e.stars)),
     },
     {
+      aspect: "Maintenance health",
+      values: entities.map((e) =>
+        e.health ? `${e.health.score}/100 — ${e.health.signals[0] ?? ""}` : "—"
+      ),
+    },
+    {
       aspect: "Last repo activity",
       values: entities.map((e) => fmtDate(e.lastUpdated)),
     },
   ];
 
-  const ranked = [...entities].sort((a, b) => (b.stars ?? 0) - (a.stars ?? 0));
-  const top = ranked[0];
-  const verdict =
-    entities.length === 0
-      ? "No results found. Try a different query."
-      : `Based on live data: **${top.name}** leads on community adoption (${fmtStars(
-          top.stars
-        )} stars${
-          top.latestRelease ? `, latest release ${top.latestRelease}` : ""
-        }). ` +
-        `Pick the one whose docs and release cadence best match your stack — all sources below are from the last live search, not training data.`;
+  // Composite pick: adoption (log stars) 50% + maintenance health 50%.
+  const scored = entities.map((e) => {
+    const adoption = e.stars ? Math.min(100, 20 * Math.log10(e.stars + 1)) : 0;
+    const health = e.health?.score ?? 50;
+    return { e, total: Math.round(adoption * 0.5 + health * 0.5), adoption: Math.round(adoption) };
+  });
+  scored.sort((a, b) => b.total - a.total);
+  const winner = scored[0];
+
+  let verdict: string;
+  if (!winner) {
+    verdict = "No results found. Try a different query.";
+  } else {
+    const reasons: string[] = [];
+    if (winner.e.stars) reasons.push(`${fmtStars(winner.e.stars)} stars`);
+    if (winner.e.health) reasons.push(`maintenance ${winner.e.health.score}/100`);
+    if (winner.e.latestRelease) reasons.push(`latest release ${winner.e.latestRelease}`);
+    verdict =
+      `Based on live data, **${winner.e.name}** looks like the safest bet ` +
+      `(${reasons.join(", ") || "limited data"}). `;
+    const runnerUp = scored[1];
+    if (runnerUp) {
+      const diff = winner.total - runnerUp.total;
+      verdict +=
+        diff >= 15
+          ? `It leads **${runnerUp.e.name}** by a clear margin on adoption + maintenance. `
+          : `**${runnerUp.e.name}** is close behind — pick by docs quality and API fit for your stack. `;
+    }
+    if (h2h && h2h.snippets.length > 0) {
+      const s = h2h.snippets[0];
+      verdict += `Head-to-head chatter: "${s.title}" — see sources for migration notes. `;
+    }
+    const weak = scored.filter(
+      (s) => s.e.health && (s.e.health.archived || s.e.health.score < 35)
+    );
+    for (const w of weak) {
+      verdict += `⚠️ **${w.e.name}** shows maintenance risk (${w.e.health!.signals[0]}). `;
+    }
+    verdict += "All claims link to live sources below — nothing here is from training data.";
+  }
 
   return {
     query,

@@ -1,4 +1,5 @@
 import type { EntityResult, Report } from "./types.js";
+import type { HeadToHead } from "./agent.js";
 import { buildExtractiveReport } from "./extractive.js";
 
 const SYSTEM_PROMPT = `You are a precise technical research assistant. Given live-fetched data about libraries/tools, produce a JSON comparison report. Rules:
@@ -90,8 +91,9 @@ export async function synthesizeWithLlm(
 export async function synthesize(
   query: string,
   entities: EntityResult[],
-  creditsUsed: number
+  creditsUsed: number,
+  h2h?: HeadToHead
 ): Promise<Report> {
   const llm = await synthesizeWithLlm(query, entities, creditsUsed);
-  return llm ?? buildExtractiveReport(query, entities, creditsUsed);
+  return llm ?? buildExtractiveReport(query, entities, creditsUsed, h2h);
 }

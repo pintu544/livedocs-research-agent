@@ -1,10 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import { parseEntities } from "./parse.js";
-import { researchEntity } from "./research.js";
-import { synthesize } from "./synthesize.js";
-import { getCreditsUsed, resetCredits } from "./serpapi.js";
+import { runAgent } from "./agent.js";
 import type { ProgressMsg, Report } from "./types.js";
 
 const app = express();
@@ -47,30 +44,21 @@ app.post("/api/research", async (req, res) => {
     Connection: "keep-alive",
   });
 
-  const send = (msg: ProgressMsg) => {
+  const send = (step: string, detail?: string) => {
+    const msg: ProgressMsg = { step, detail };
     res.write(`data: ${JSON.stringify(msg)}\n\n`);
   };
 
   try {
-    resetCredits();
-    send({ step: "parse", detail: `Parsing "${query}"…` });
+    const report: Report = await runAgent(query, (step, detail) => send(step, detail));
 
-    const names = await parseEntities(query, (step, detail) => send({ step, detail }));
-    if (names.length === 0) throw new Error("Could not extract anything to compare from the query.");
-    send({ step: "parse", detail: `Comparing: ${names.join(" · ")}` });
-
-    // Research entities in parallel; the shared SerpApi throttle keeps ≥1s between calls.
-    const progress = (step: string, detail?: string) => send({ step, detail });
-    const entities = await Promise.all(names.map((n) => researchEntity(n, progress)));
-
-    send({ step: "synthesize", detail: "Building the comparison report…" });
-    const report: Report = await synthesize(query, entities, getCreditsUsed());
-
-    send({ step: "done", detail: `Report ready — ${report.creditsUsed} SerpApi credits used.` });
-    send({ step: "report", done: true, detail: JSON.stringify(report) });
+    send("done", `Report ready — ${report.creditsUsed} SerpApi credits used.`);
+    const done: ProgressMsg = { step: "report", done: true, detail: JSON.stringify(report) };
+    res.write(`data: ${JSON.stringify(done)}\n\n`);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
-    send({ step: "error", error: message });
+    const msg: ProgressMsg = { step: "error", error: message };
+    res.write(`data: ${JSON.stringify(msg)}\n\n`);
   } finally {
     res.end();
   }

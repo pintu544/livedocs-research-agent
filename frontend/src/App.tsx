@@ -16,7 +16,7 @@ function fmtDateTime(iso: string): string {
 }
 
 export default function App() {
-  const { phase, steps, report, error, run, setReport, setPhase } = useResearch();
+  const { phase, steps, thoughts, report, error, run, setReport, setPhase } = useResearch();
   const [history, setHistory] = useState<Report[]>([]);
 
   useEffect(() => {
@@ -58,7 +58,7 @@ export default function App() {
       <main className="mx-auto max-w-5xl px-4 py-6 sm:py-10">
         <QueryForm onRun={run} running={running} />
 
-        {running && <ProgressSteps steps={steps} />}
+        {running && <ProgressSteps steps={steps} thoughts={thoughts} />}
 
         {phase === "error" && error && (
           <div className="mx-auto mt-6 max-w-2xl rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">

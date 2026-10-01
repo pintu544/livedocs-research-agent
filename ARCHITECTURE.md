@@ -17,23 +17,29 @@ built from data fetched seconds ago via SerpApi, not from stale training knowled
   Without a key the app falls back to an extractive report built from snippets.
 - No database. History lives in the browser (localStorage).
 
-## Agent pipeline (backend, `POST /api/research`, SSE progress stream)
-1. **Parse** — extract entities from the query. Heuristic: split on "vs"/"versus"/commas;
-   single topic → treat as "best X for Y" discovery.
-2. **Search (SerpApi, ~4–6 credits per run, ≥1s between calls)** per entity:
-   - Official docs: `engine=google, q="site:<likely-docs-domain> <entity>"` — first
-     try `q="<entity> official documentation"`, take top result's domain for refinement.
-   - Release notes: `q="site:github.com <entity> releases"` → latest release + date.
-   - News/announcements: `engine=google, tbm=nws, q="<entity> release OR launch"`.
-   - GitHub stats: unauthenticated api.github.com search for stars/updated_at
-     (free, costs no SerpApi credits).
-3. **Fetch** — top 2–3 docs pages per entity via SerpApi `getMarkdown` (token-cheap)
-   or direct fetch fallback.
-4. **Synthesize** — if `LLM_API_KEY` set: structured prompt → JSON report with
-   citations. Else: extractive report from titles/snippets/dates (still sourced).
-5. **Report JSON** — `{ entities: [{name, docsUrl, latestRelease, releaseDate, stars,
-   summary, sources[]}], comparisonTable: [{aspect, values[]}], verdict, creditsUsed }`.
-   Every factual claim carries a source link.
+## Agent loop (backend, `POST /api/research`, SSE progress stream)
+The agent narrates every decision as `thought` events so the UI shows its
+reasoning live — this is what makes it an agent, not a fixed pipeline.
+1. **Plan** — parse entities from the query (split on "vs"/"versus"/commas;
+   single topic → live "best X" discovery search). Announce the research plan.
+2. **Research in parallel** — per entity: GitHub stats first (free api.github.com —
+   stars, latest release, last activity, and the repo *homepage* which usually *is*
+   the official docs URL, so the docs search is skipped); release-notes search
+   (`site:github.com <entity> releases`); news/announcements (`tbm=nws`).
+   ~2 SerpApi credits per entity, ≥1s between calls.
+3. **Reflect** — fill gaps with targeted follow-ups (max 1 extra search per
+   entity): no docs link → documentation-site search; no release → changelog search.
+4. **Head-to-head deep dive** — top 2 contenders by stars get a dedicated
+   `<A> vs <B> comparison migrate` search; snippets feed the verdict.
+5. **Maintenance health** — free GitHub data (release dates, open issues,
+   push activity, archived flag) → 0–100 score from recency (40) + cadence (30)
+   + issue load (30), with human-readable signals.
+6. **Synthesize** — if `LLM_API_KEY` set: structured prompt → cited JSON report.
+   Else: extractive report — composite pick (adoption 50% + health 50%), runner-up
+   analysis, maintenance-risk warnings, head-to-head references. Still fully sourced.
+7. **Report JSON** — `{ entities: [{name, docsUrl, latestRelease, releaseDate, stars,
+   health, summary, sources[]}], comparisonTable: [{aspect, values[]}], verdict,
+   creditsUsed }`. Every factual claim carries a source link.
 
 ## Frontend pages
 - Home: query input + example chips ("React Query vs SWR", "Zustand vs Redux"),

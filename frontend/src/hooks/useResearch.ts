@@ -24,6 +24,7 @@ const STEP_LABELS: Record<string, string> = {
 export function useResearch() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [steps, setSteps] = useState<Step[]>([]);
+  const [thoughts, setThoughts] = useState<string[]>([]);
   const [report, setReport] = useState<Report | null>(null);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -36,6 +37,7 @@ export function useResearch() {
     setPhase("running");
     setReport(null);
     setError(null);
+    setThoughts([]);
     setSteps(
       STEP_ORDER.map((id, i) => ({
         id,
@@ -84,6 +86,8 @@ export function useResearch() {
           setPhase("done");
         } else if (msg.step === "error") {
           throw new Error(msg.error ?? "Research failed");
+        } else if (msg.step === "thought" && msg.detail) {
+          setThoughts((prev) => [...prev.slice(-29), msg.detail as string]);
         } else if (STEP_ORDER.includes(msg.step)) {
           markStep(msg.step, msg.detail);
         }
@@ -115,5 +119,5 @@ export function useResearch() {
 
   const cancel = useCallback(() => abortRef.current?.abort(), []);
 
-  return { phase, steps, report, error, run, cancel, setReport, setPhase };
+  return { phase, steps, thoughts, report, error, run, cancel, setReport, setPhase };
 }

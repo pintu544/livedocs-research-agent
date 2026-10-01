@@ -10,19 +10,30 @@ from data fetched seconds ago via SerpApi — not from stale training knowledge.
 
 ## How it works
 
-1. **Parse** — the query is split into entities (`"A vs B"`, `"A, B, C"`); a single topic
+1. **Plan** — the query is split into entities (`"A vs B"`, `"A, B, C"`); a single topic
    like `"best Python web frameworks"` triggers a live discovery search for the top contenders.
-2. **Research (SerpApi)** — for each entity, in parallel:
-   - Official documentation search (`engine=google`, `"<entity> official documentation"`)
+   The agent announces its research plan as a live reasoning trace.
+2. **Research (SerpApi + GitHub)** — for each entity, in parallel:
+   - GitHub stats first (free api.github.com): stars, latest release, last activity —
+     the repo's homepage URL usually *is* the official docs site, so it's used
+     directly as the docs link (no search credit spent).
+   - Official documentation search (`engine=google`, `"<entity> official documentation"`) —
+     only when the repo has no homepage; candidates are ranked by entity-name match.
    - Release notes (`site:github.com <entity> releases`)
    - News & announcements (`engine=google`, `tbm=nws`)
-   - GitHub stats (stars, latest release, last activity) via the free api.github.com
    - All SerpApi calls are throttled to ≥1s apart (free-tier rate limit).
-3. **Synthesize** — if an OpenAI-compatible LLM key is configured, a structured prompt
+3. **Reflect** — the agent inspects gaps (missing docs link? missing release?) and runs
+   targeted follow-up searches, narrating each decision.
+4. **Head-to-head deep dive** — the two most-starred contenders get a dedicated
+   `<A> vs <B> comparison migrate` search for trade-offs and migration notes.
+5. **Maintenance health** — free GitHub data (release cadence, recency, open issues,
+   archived flag) becomes a 0–100 score with human-readable signals.
+6. **Synthesize** — if an OpenAI-compatible LLM key is configured, a structured prompt
    produces a cited JSON report; otherwise an extractive report is built from live
-   snippets (still fully sourced).
-4. **Report** — entity cards, comparison table, verdict, collapsible source list,
-   one-click Markdown export, and localStorage history. Progress streams over SSE.
+   data (composite pick: adoption 50% + health 50%, runner-up analysis, risk warnings).
+7. **Report** — entity cards with health badges, comparison table, verdict, live agent
+   reasoning log, collapsible source list, one-click Markdown export, and
+   localStorage history. Progress streams over SSE.
 
 ## Quick start
 
@@ -66,9 +77,11 @@ from a live SerpApi search:
   (Docs / Release / News / Repo / Page).
 - The official `serpapi` npm package is used for all calls; 1 search = 1 credit.
 
-**Credit budget:** ~3 credits per entity (docs + releases + news), plus 1 for discovery
-mode — a typical 2-way comparison costs **~6 credits**. The free 250/month plan covers
-~40 comparisons; a valid hackathon submission adds 1,000 bonus credits (~200 comparisons).
+**Credit budget:** ~2 credits per entity (releases + news; the docs search is skipped
+when the GitHub repo homepage already points at the official docs), plus 1 for
+discovery mode — a typical 2-way comparison costs **~4 credits**. The free
+250/month plan covers ~60 comparisons; a valid hackathon submission adds 1,000
+bonus credits (~250 comparisons).
 
 ## API
 
@@ -81,12 +94,14 @@ mode — a typical 2-way comparison costs **~6 credits**. The free 250/month pla
 ```
 backend/
   src/index.ts        Express server + SSE endpoint
+  src/agent.ts        Agent loop: plan → research → reflect → head-to-head → health → synthesize
   src/parse.ts        Query → entity parsing (+ live discovery mode)
   src/research.ts     Per-entity SerpApi pipeline (docs, releases, news, GitHub)
   src/serpapi.ts      Throttled SerpApi client (≥1s between calls, credit counter)
   src/github.ts       Free GitHub API lookups (no SerpApi credit)
+  src/health.ts       Maintenance-health scoring from GitHub data (0–100)
   src/synthesize.ts   Optional OpenAI-compatible LLM synthesis
-  src/extractive.ts   No-LLM fallback report builder
+  src/extractive.ts   No-LLM fallback report builder (composite scoring, risk warnings)
 frontend/
   src/App.tsx         Main view: form → progress → report → history
   src/hooks/useResearch.ts   SSE client state machine
@@ -103,8 +118,8 @@ for summarization, with an extractive fallback when no key is configured.
 
 ## Demo video script (≤3 min)
 
-1. (0:00–0:20) Hook: "LLMs hallucinate library comparisons — this one reads live docs."
-2. (0:20–1:00) Type "React Query vs SWR", show live SSE pipeline steps.
-3. (1:00–2:00) Walk the report: entity cards (docs link, release, stars), comparison table, verdict.
+1. (0:00–0:20) Hook: "LLMs hallucinate library comparisons — this agent reads live docs."
+2. (0:20–1:00) Type "React Query vs SWR", show the live reasoning trace as the agent plans, reflects, and deep-dives.
+3. (1:00–2:00) Walk the report: entity cards with maintenance-health badges, comparison table, verdict with runner-up analysis.
 4. (2:00–2:30) Expand sources — every claim links to a live page; Export Markdown.
 5. (2:30–3:00) History re-open + "how SerpApi is used" + credits used counter.
