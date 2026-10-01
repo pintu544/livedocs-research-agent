@@ -94,7 +94,7 @@ export function buildExtractiveReport(
     for (const w of weak) {
       verdict += `⚠️ **${w.e.name}** shows maintenance risk (${w.e.health!.signals[0]}). `;
     }
-    verdict += "All claims link to live sources below — nothing here is from training data.";
+    verdict += "Supporting live sources are collected below; measured fields come from this run.";
   }
 
   return {

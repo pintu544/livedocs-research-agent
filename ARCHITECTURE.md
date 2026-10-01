@@ -5,7 +5,7 @@ Deadline: October 10, 2026, 11:59 PM IST
 
 ## What it is
 An AI research assistant that compares libraries/tools using **live** documentation,
-release announcements, and community signals — every claim backed by a sourced link.
+release announcements, and community signals — with an inspectable evidence ledger.
 User asks "React Query vs SWR" (or "best Node.js ORMs") and gets a comparison report
 built from data fetched seconds ago via SerpApi, not from stale training knowledge.
 
@@ -36,17 +36,17 @@ reasoning live — this is what makes it an agent, not a fixed pipeline.
    + adoption-normalized issue load (30), with human-readable signals.
 6. **Synthesize** — if `LLM_API_KEY` set: structured prompt → cited JSON report.
    Else: extractive report — composite pick (adoption 50% + health 50%), runner-up
-   analysis, maintenance-risk warnings, head-to-head references. Still fully sourced.
+   analysis, maintenance-risk warnings, and head-to-head references from collected evidence.
 7. **Report JSON** — `{ entities: [{name, docsUrl, latestRelease, releaseDate, stars,
    health, summary, sources[]}], comparisonTable: [{aspect, values[]}], verdict,
-   creditsUsed }`. Every factual claim carries a source link.
+   creditsUsed }`. Each entity retains the evidence links used during research.
 
 ### Reliability invariants
 - SerpApi calls enter one global queue, preserving the free-tier interval even while entity
   research runs concurrently.
 - Credit accounting is request-local, so overlapping visitors receive accurate cost totals.
-- Optional LLM output can supply summaries, comparison rows, and a verdict, but cannot replace
-  application-owned measurements or source records.
+- Optional LLM output can supply bounded summaries, qualitative rows, and a verdict, but cannot
+  replace application-owned measurements, deterministic factual rows, or source records.
 - SSE heartbeats and disabled proxy buffering keep long-running research visibly alive.
 
 ## Frontend pages
@@ -57,7 +57,8 @@ reasoning live — this is what makes it an agent, not a fixed pipeline.
 - History: past reports from localStorage, re-open offline.
 
 ## Robustness / hackathon rules
-- `SERPAPI_API_KEY` from env only; never committed. `.env.example` provided.
+- `SERPAPI_API_KEY` and optional `GITHUB_TOKEN` come from env only; never committed.
+  `.env.example` is provided.
 - Graceful degradation: SerpApi error → clear message + credits note;
   no LLM key → extractive mode banner.
 - README documents: setup, env vars, how SerpApi is used (required by judges),

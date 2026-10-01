@@ -2,6 +2,7 @@ import { getJson } from "serpapi";
 import { AsyncLocalStorage } from "node:async_hooks";
 
 const MIN_GAP_MS = 1100; // free-tier rate limit ~1 req/sec
+const SEARCH_TIMEOUT_MS = 25_000;
 let lastCall = 0;
 let searchQueue: Promise<void> = Promise.resolve();
 const creditContext = new AsyncLocalStorage<{ credits: number }>();
@@ -69,6 +70,7 @@ export async function serpSearch(params: {
       api_key: key,
       q: params.q,
       num: params.num ?? 10,
+      timeout: SEARCH_TIMEOUT_MS,
       ...(params.tbm ? { tbm: params.tbm } : {}),
     } as Record<string, string | number>)) as Record<string, unknown>;
   } finally {

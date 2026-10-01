@@ -40,8 +40,8 @@ export default function App() {
   const allSources = Array.from(
     new Map((report?.entities.flatMap((e) => e.sources) ?? []).map((source) => [source.url, source])).values()
   );
-  const officialSources = allSources.filter((s) => s.kind === "docs" || s.kind === "repo" || s.kind === "release").length;
-  const entitiesWithCoreEvidence = report?.entities.filter(
+  const coreEvidenceLinks = allSources.filter((s) => s.kind === "docs" || s.kind === "repo" || s.kind === "release").length;
+  const entitiesWithCoreFields = report?.entities.filter(
     (e) => Boolean(e.docsUrl && e.repoUrl && e.latestRelease)
   ).length ?? 0;
 
@@ -98,8 +98,8 @@ export default function App() {
 
             {report.mode === "extractive" && (
               <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs sm:text-sm text-amber-800">
-                Running in extractive mode (no LLM key configured) — values are quoted straight
-                from live search results, with sources below.
+                Running in extractive mode (no LLM key configured) — the decision is derived
+                deterministically from live web and GitHub evidence.
               </p>
             )}
 
@@ -109,12 +109,12 @@ export default function App() {
                 <p className="mt-0.5 text-[11px] uppercase tracking-wide text-slate-500">unique sources</p>
               </div>
               <div className="border-x border-slate-200 px-3 py-4 text-center sm:px-5">
-                <p className="text-xl font-extrabold text-ink">{officialSources}</p>
-                <p className="mt-0.5 text-[11px] uppercase tracking-wide text-slate-500">primary sources</p>
+                <p className="text-xl font-extrabold text-ink">{coreEvidenceLinks}</p>
+                <p className="mt-0.5 text-[11px] uppercase tracking-wide text-slate-500">core evidence links</p>
               </div>
               <div className="px-3 py-4 text-center sm:px-5">
-                <p className="text-xl font-extrabold text-ink">{entitiesWithCoreEvidence}/{report.entities.length}</p>
-                <p className="mt-0.5 text-[11px] uppercase tracking-wide text-slate-500">fully verified</p>
+                <p className="text-xl font-extrabold text-ink">{entitiesWithCoreFields}/{report.entities.length}</p>
+                <p className="mt-0.5 text-[11px] uppercase tracking-wide text-slate-500">core fields present</p>
               </div>
             </section>
 
@@ -179,8 +179,8 @@ export default function App() {
 
       <footer className="border-t border-slate-200 bg-white">
         <div className="mx-auto max-w-5xl px-4 py-4 text-xs text-slate-400">
-          LiveDocs Research Agent · SerpApi India Hackathon 2026 (AI Agents track) · Every claim
-          links to a live source.
+          LiveDocs Research Agent · SerpApi India Hackathon 2026 (AI Agents track) · Live
+          evidence included with every report.
         </div>
       </footer>
     </div>

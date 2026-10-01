@@ -28,8 +28,9 @@ export async function parseEntities(
   }
 
   // Single topic: discover the top contenders with one live search (1 credit).
-  onProgress("parse", `Discovering top contenders for "${query}"…`);
-  const { results } = await serpSearch({ q: `best ${query} 2026`, num: 10 });
+  const topic = query.replace(/^(best|top)\s+/i, "").trim() || query;
+  onProgress("parse", `Discovering top contenders for "${topic}"…`);
+  const { results } = await serpSearch({ q: `best ${topic} ${new Date().getFullYear()}`, num: 10 });
   const seen = new Set<string>();
   const names: string[] = [];
   for (const r of results) {

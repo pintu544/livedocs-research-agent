@@ -119,7 +119,7 @@ export async function researchEntity(
           entity.summary = sentences.slice(0, 3).join(" ").slice(0, 600) || undefined;
         }
       }
-      const rel = await latestRelease(repo.fullName);
+      const rel = await latestRelease(repo.fullName, name);
       if (rel) {
         if (!entity.latestRelease) entity.latestRelease = rel.tag;
         if (!entity.releaseDate && rel.publishedAt) entity.releaseDate = rel.publishedAt;

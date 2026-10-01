@@ -13,7 +13,7 @@ from data fetched seconds ago via SerpApi — not from stale training knowledge.
 
 - **Search is the agent's sensor, not a decorative add-on.** SerpApi drives discovery,
   official-doc lookup, release research, news scanning, gap-filling, and head-to-head analysis.
-- **Verifiable by design.** Reports expose unique-source count, primary-source count, evidence
+- **Verifiable by design.** Reports expose unique-source count, core-evidence count, evidence
   coverage, the exact links used, generation time, and search-credit cost.
 - **Useful without a second paid API.** The deterministic synthesis mode still ranks options,
   flags maintenance risk, cites evidence, and exports a reusable Markdown decision brief.
@@ -74,6 +74,7 @@ Production: `npm run build` in both folders — the backend serves `frontend/dis
 | Variable | Required | Description |
 |---|---|---|
 | `SERPAPI_API_KEY` | ✅ | SerpApi key for all live searches (free plan: 250 searches/month, no card) |
+| `GITHUB_TOKEN` | – | Read-only token that raises GitHub API limits for reliable demo data |
 | `PORT` | – | Backend port (default `4000`) |
 | `LLM_BASE_URL` | – | OpenAI-compatible endpoint (default `https://api.openai.com/v1`) |
 | `LLM_MODEL` | – | Chat model (default `gpt-4o-mini`) |
@@ -93,11 +94,10 @@ public API and are labeled as such:
   (Docs / Release / News / Repo / Page).
 - The official `serpapi` npm package is used for all calls; 1 search = 1 credit.
 
-**Credit budget:** ~2 credits per entity (releases + news; the docs search is skipped
-when the GitHub repo homepage already points at the official docs), plus 1 for
-discovery mode — a typical 2-way comparison costs **~4 credits**. The free
-250/month plan covers ~60 comparisons; a valid hackathon submission adds 1,000
-bonus credits (~250 comparisons).
+**Credit budget:** 2 credits per entity (releases + news), plus 1 for the head-to-head
+search. Docs lookup, gap-filling, or discovery can add more, so a 2-way comparison
+typically costs **5–7 credits**. The free 250/month plan covers roughly 35–50 comparisons;
+1,000 bonus credits cover roughly 140–200, depending on evidence gaps.
 
 ## API
 
@@ -129,8 +129,9 @@ frontend/
 
 As required by the hackathon rules: this project was built with **Muse**, Meta's AI
 assistant (agentic coding help for architecture, implementation, and documentation).
-SerpApi is the only external data API; an optional OpenAI-compatible LLM may be used
-for summarization, with an extractive fallback when no key is configured.
+SerpApi provides web evidence, GitHub's public API provides repository signals, and an
+optional OpenAI-compatible LLM may be used for summarization. An extractive fallback works
+when no LLM key is configured.
 
 ## Demo video script (≤3 min)
 

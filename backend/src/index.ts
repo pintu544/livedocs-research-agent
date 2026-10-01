@@ -51,9 +51,17 @@ app.post("/api/research", async (req, res) => {
   res.flushHeaders();
 
   // Keep proxies from closing the connection during throttled search calls.
-  const heartbeat = setInterval(() => res.write(": keep-alive\n\n"), 15_000);
+  let clientConnected = true;
+  const heartbeat = setInterval(() => {
+    if (clientConnected && !res.writableEnded) res.write(": keep-alive\n\n");
+  }, 15_000);
+  res.on("close", () => {
+    clientConnected = false;
+    clearInterval(heartbeat);
+  });
 
   const send = (step: string, detail?: string) => {
+    if (!clientConnected || res.writableEnded) return;
     const msg: ProgressMsg = { step, detail };
     res.write(`data: ${JSON.stringify(msg)}\n\n`);
   };
@@ -63,11 +71,15 @@ app.post("/api/research", async (req, res) => {
 
     send("done", `Report ready (${report.mode} mode) — ${report.creditsUsed} SerpApi credits used.`);
     const done: ProgressMsg = { step: "report", done: true, detail: JSON.stringify(report) };
-    res.write(`data: ${JSON.stringify(done)}\n\n`);
+    if (clientConnected && !res.writableEnded) {
+      res.write(`data: ${JSON.stringify(done)}\n\n`);
+    }
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     const msg: ProgressMsg = { step: "error", error: message };
-    res.write(`data: ${JSON.stringify(msg)}\n\n`);
+    if (clientConnected && !res.writableEnded) {
+      res.write(`data: ${JSON.stringify(msg)}\n\n`);
+    }
   } finally {
     clearInterval(heartbeat);
     res.end();

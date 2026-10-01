@@ -3,7 +3,7 @@ import type { HeadToHead } from "./agent.js";
 import { buildExtractiveReport } from "./extractive.js";
 
 const SYSTEM_PROMPT = `You are a precise technical research assistant. Given live-fetched data about libraries/tools, produce a JSON comparison report. Rules:
-- Every factual claim MUST cite a source URL from the provided sources (add a "sources" array per entity using the exact URLs given).
+- Ground every factual claim in the provided evidence and preserve the exact source URLs in each entity's "sources" array.
 - Never invent version numbers, dates, or stats — use only the data provided. If a field is missing, use null.
 - Each entity carries a "health" object with a 0-100 maintenance score and signals — weigh it in the verdict and include a "Maintenance health" row in the comparisonTable with values like "92/100 — Released 3d ago" (score + first signal).
 - If head-to-head context is provided, add a "Head-to-head" row to the comparisonTable summarizing migration/trade-off notes, and fold one sentence about it into the verdict.
