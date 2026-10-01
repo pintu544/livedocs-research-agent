@@ -1,7 +1,7 @@
 import { parseEntities } from "./parse.js";
 import { researchEntity } from "./research.js";
 import { repoHealth } from "./health.js";
-import { serpSearch, getCreditsUsed, resetCredits } from "./serpapi.js";
+import { serpSearch, getCreditsUsed, withSearchSession } from "./serpapi.js";
 import { synthesize } from "./synthesize.js";
 import type { Report } from "./types.js";
 
@@ -21,7 +21,13 @@ export async function runAgent(
   query: string,
   onProgress: (step: string, detail?: string) => void
 ): Promise<Report> {
-  resetCredits();
+  return withSearchSession(() => runAgentSession(query, onProgress));
+}
+
+async function runAgentSession(
+  query: string,
+  onProgress: (step: string, detail?: string) => void
+): Promise<Report> {
   onProgress("thought", `Breaking down your query: "${query}"…`);
 
   const names = await parseEntities(query, onProgress);
@@ -106,5 +112,6 @@ export async function runAgent(
   );
 
   onProgress("thought", "Weighing adoption, maintenance health, and docs against each other…");
+  onProgress("synthesize", "Building an evidence-backed decision brief…");
   return synthesize(query, entities, getCreditsUsed(), h2h, onProgress);
 }

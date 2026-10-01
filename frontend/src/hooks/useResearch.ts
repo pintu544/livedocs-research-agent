@@ -11,12 +11,11 @@ export interface Step {
   finished: boolean;
 }
 
-const STEP_ORDER = ["parse", "search", "github", "synthesize", "done"];
+const STEP_ORDER = ["parse", "research", "synthesize", "done"];
 
 const STEP_LABELS: Record<string, string> = {
   parse: "Parsing query",
-  search: "Live search via SerpApi",
-  github: "GitHub stats",
+  research: "Researching live evidence",
   synthesize: "Building report",
   done: "Report ready",
 };
@@ -88,8 +87,9 @@ export function useResearch() {
           throw new Error(msg.error ?? "Research failed");
         } else if (msg.step === "thought" && msg.detail) {
           setThoughts((prev) => [...prev.slice(-29), msg.detail as string]);
-        } else if (STEP_ORDER.includes(msg.step)) {
-          markStep(msg.step, msg.detail);
+        } else {
+          const normalized = msg.step === "search" || msg.step === "github" ? "research" : msg.step;
+          if (STEP_ORDER.includes(normalized)) markStep(normalized, msg.detail);
         }
       };
 

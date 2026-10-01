@@ -37,7 +37,13 @@ export default function App() {
   };
 
   const running = phase === "running";
-  const allSources = report?.entities.flatMap((e) => e.sources) ?? [];
+  const allSources = Array.from(
+    new Map((report?.entities.flatMap((e) => e.sources) ?? []).map((source) => [source.url, source])).values()
+  );
+  const officialSources = allSources.filter((s) => s.kind === "docs" || s.kind === "repo" || s.kind === "release").length;
+  const entitiesWithCoreEvidence = report?.entities.filter(
+    (e) => Boolean(e.docsUrl && e.repoUrl && e.latestRelease)
+  ).length ?? 0;
 
   return (
     <div className="min-h-screen bg-paper text-ink">
@@ -96,6 +102,21 @@ export default function App() {
                 from live search results, with sources below.
               </p>
             )}
+
+            <section className="grid grid-cols-3 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" aria-label="Evidence quality">
+              <div className="px-3 py-4 text-center sm:px-5">
+                <p className="text-xl font-extrabold text-ink">{allSources.length}</p>
+                <p className="mt-0.5 text-[11px] uppercase tracking-wide text-slate-500">unique sources</p>
+              </div>
+              <div className="border-x border-slate-200 px-3 py-4 text-center sm:px-5">
+                <p className="text-xl font-extrabold text-ink">{officialSources}</p>
+                <p className="mt-0.5 text-[11px] uppercase tracking-wide text-slate-500">primary sources</p>
+              </div>
+              <div className="px-3 py-4 text-center sm:px-5">
+                <p className="text-xl font-extrabold text-ink">{entitiesWithCoreEvidence}/{report.entities.length}</p>
+                <p className="mt-0.5 text-[11px] uppercase tracking-wide text-slate-500">fully verified</p>
+              </div>
+            </section>
 
             <div
               className="rounded-2xl border border-indigo-200 bg-indigo-50 p-4 sm:p-5 text-sm sm:text-base leading-relaxed"

@@ -25,7 +25,10 @@ export function SourcesList({ sources }: { sources: Source[] }) {
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
-      <h3 className="font-bold text-ink">Sources ({sources.length})</h3>
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="font-bold text-ink">Evidence ledger ({sources.length})</h3>
+        <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">Live & linked</span>
+      </div>
       <ul className="mt-3 space-y-2.5">
         {shown.map((s, i) => (
           <li key={`${s.url}-${i}`} className="text-sm">

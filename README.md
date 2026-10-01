@@ -3,10 +3,25 @@
 **SerpApi India Hackathon 2026 · AI Agents track · Solo entry by Pintu Kumar**
 
 An AI research assistant that compares libraries and tools using **live** documentation,
-release announcements, and community signals — every claim backed by a sourced link.
+release announcements, and community signals — every decision backed by an inspectable
+evidence ledger.
 
 Ask `"React Query vs SWR"` (or `"best Node.js ORMs"`) and get a comparison report built
 from data fetched seconds ago via SerpApi — not from stale training knowledge.
+
+## Why it stands out
+
+- **Search is the agent's sensor, not a decorative add-on.** SerpApi drives discovery,
+  official-doc lookup, release research, news scanning, gap-filling, and head-to-head analysis.
+- **Verifiable by design.** Reports expose unique-source count, primary-source count, evidence
+  coverage, the exact links used, generation time, and search-credit cost.
+- **Useful without a second paid API.** The deterministic synthesis mode still ranks options,
+  flags maintenance risk, cites evidence, and exports a reusable Markdown decision brief.
+- **Production-minded agent loop.** Paid searches are globally rate-limited, credits are tracked
+  per request, concurrent users cannot corrupt one another's totals, and SSE heartbeats survive
+  buffering proxies.
+- **LLM prose cannot rewrite facts.** Optional AI synthesis may improve the narrative, while
+  versions, dates, repository metrics, health scores, and sources remain application-owned data.
 
 ## How it works
 
@@ -37,7 +52,7 @@ from data fetched seconds ago via SerpApi — not from stale training knowledge.
 
 ## Quick start
 
-**Prerequisites:** Node.js 20+
+**Prerequisites:** Node.js 20.19+ (or 22.12+)
 
 ```bash
 # 1. Backend
@@ -66,8 +81,9 @@ Production: `npm run build` in both folders — the backend serves `frontend/dis
 
 ## How the project uses SerpApi
 
-SerpApi is the data backbone of the project — every number and claim in a report comes
-from a live SerpApi search:
+SerpApi is the discovery and web-evidence backbone of the project. Web claims come from
+live search results; repository statistics and maintenance signals come directly from GitHub's
+public API and are labeled as such:
 
 - **Google Search API** (`engine=google`) finds each library's official documentation and
   release-note pages, using scoped queries like `site:github.com <entity> releases`.
@@ -120,6 +136,10 @@ for summarization, with an extractive fallback when no key is configured.
 
 1. (0:00–0:20) Hook: "LLMs hallucinate library comparisons — this agent reads live docs."
 2. (0:20–1:00) Type "React Query vs SWR", show the live reasoning trace as the agent plans, reflects, and deep-dives.
-3. (1:00–2:00) Walk the report: entity cards with maintenance-health badges, comparison table, verdict with runner-up analysis.
-4. (2:00–2:30) Expand sources — every claim links to a live page; Export Markdown.
+3. (1:00–2:00) Walk the report: evidence-quality strip, entity cards with explainable
+   maintenance scores, comparison table, and verdict with runner-up analysis.
+4. (2:00–2:30) Open the evidence ledger and a primary source; export the decision as Markdown.
 5. (2:30–3:00) History re-open + "how SerpApi is used" + credits used counter.
+
+End on one sentence: **“LiveDocs turns search results into an auditable technical decision,
+not just another AI answer.”**

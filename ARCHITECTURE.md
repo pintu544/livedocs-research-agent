@@ -33,7 +33,7 @@ reasoning live — this is what makes it an agent, not a fixed pipeline.
    `<A> vs <B> comparison migrate` search; snippets feed the verdict.
 5. **Maintenance health** — free GitHub data (release dates, open issues,
    push activity, archived flag) → 0–100 score from recency (40) + cadence (30)
-   + issue load (30), with human-readable signals.
+   + adoption-normalized issue load (30), with human-readable signals.
 6. **Synthesize** — if `LLM_API_KEY` set: structured prompt → cited JSON report.
    Else: extractive report — composite pick (adoption 50% + health 50%), runner-up
    analysis, maintenance-risk warnings, head-to-head references. Still fully sourced.
@@ -41,11 +41,19 @@ reasoning live — this is what makes it an agent, not a fixed pipeline.
    health, summary, sources[]}], comparisonTable: [{aspect, values[]}], verdict,
    creditsUsed }`. Every factual claim carries a source link.
 
+### Reliability invariants
+- SerpApi calls enter one global queue, preserving the free-tier interval even while entity
+  research runs concurrently.
+- Credit accounting is request-local, so overlapping visitors receive accurate cost totals.
+- Optional LLM output can supply summaries, comparison rows, and a verdict, but cannot replace
+  application-owned measurements or source records.
+- SSE heartbeats and disabled proxy buffering keep long-running research visibly alive.
+
 ## Frontend pages
 - Home: query input + example chips ("React Query vs SWR", "Zustand vs Redux"),
   live pipeline progress (SSE steps), report view.
-- Report: entity cards (docs link, latest release, stars), comparison table,
-  verdict, collapsible source list with links, "Export Markdown" button.
+- Report: evidence-quality strip, entity cards (docs link, latest release, stars), comparison
+  table, verdict, collapsible evidence ledger with links, "Export Markdown" button.
 - History: past reports from localStorage, re-open offline.
 
 ## Robustness / hackathon rules

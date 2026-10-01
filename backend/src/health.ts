@@ -31,6 +31,8 @@ export async function repoHealth(fullName: string): Promise<RepoHealth | null> {
   const archived = repo["archived"] === true;
   const openIssues =
     typeof repo["open_issues_count"] === "number" ? (repo["open_issues_count"] as number) : null;
+  const stars =
+    typeof repo["stargazers_count"] === "number" ? (repo["stargazers_count"] as number) : null;
   const lastPushDaysAgo = daysAgo(
     typeof repo["pushed_at"] === "string" ? (repo["pushed_at"] as string) : undefined
   );
@@ -74,13 +76,26 @@ export async function repoHealth(fullName: string): Promise<RepoHealth | null> {
     else if (avgReleaseGapDays <= 365) { cadence = 10; signals.push(`Slow cadence (~${fmtDays(avgReleaseGapDays)} between releases)`); }
     else { cadence = 5; signals.push(`Very slow cadence (~${fmtDays(avgReleaseGapDays)} between releases)`); }
 
-    // Issue load (30)
+    // Issue load (30). Normalize by adoption so a popular project is not
+    // punished merely for having more users filing issues.
     let issues: number;
+    const issuesPerThousandStars =
+      openIssues != null && stars != null && stars >= 100
+        ? (openIssues / stars) * 1000
+        : null;
     if (openIssues == null) { issues = 10; }
-    else if (openIssues < 100) { issues = 30; signals.push(`${openIssues} open issues — healthy`); }
-    else if (openIssues < 500) { issues = 22; signals.push(`${openIssues} open issues`); }
-    else if (openIssues < 2000) { issues = 14; signals.push(`${openIssues} open issues — heavy backlog`); }
-    else { issues = 6; signals.push(`${openIssues.toLocaleString("en-IN")} open issues — heavy backlog`); }
+    else if (issuesPerThousandStars == null) {
+      issues = openIssues < 100 ? 30 : openIssues < 500 ? 22 : openIssues < 2000 ? 14 : 6;
+      signals.push(`${openIssues.toLocaleString("en-IN")} open issues`);
+    } else if (issuesPerThousandStars < 10) {
+      issues = 30; signals.push(`${openIssues.toLocaleString("en-IN")} open issues — low for its adoption`);
+    } else if (issuesPerThousandStars < 30) {
+      issues = 22; signals.push(`${openIssues.toLocaleString("en-IN")} open issues`);
+    } else if (issuesPerThousandStars < 75) {
+      issues = 14; signals.push(`${openIssues.toLocaleString("en-IN")} open issues — elevated backlog`);
+    } else {
+      issues = 6; signals.push(`${openIssues.toLocaleString("en-IN")} open issues — heavy relative backlog`);
+    }
 
     score = Math.min(100, recency + cadence + issues);
   }

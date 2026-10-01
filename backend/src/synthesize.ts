@@ -1,4 +1,4 @@
-import type { EntityResult, Report, Source } from "./types.js";
+import type { ComparisonRow, EntityResult, Report } from "./types.js";
 import type { HeadToHead } from "./agent.js";
 import { buildExtractiveReport } from "./extractive.js";
 
@@ -18,10 +18,6 @@ const SYSTEM_PROMPT = `You are a precise technical research assistant. Given liv
   "comparisonTable": [ { "aspect": string, "values": [string, ...] } ],
   "verdict": string
 }`;
-
-function healthRowValue(e: EntityResult): string {
-  return e.health ? `${e.health.score}/100 — ${e.health.signals[0] ?? ""}` : "—";
-}
 
 /**
  * Optional LLM synthesis via any OpenAI-compatible endpoint.
@@ -58,7 +54,13 @@ export async function synthesizeWithLlm(
           archived: e.health.archived,
         }
       : null,
-    sources: e.sources.map((s) => ({ title: s.title, url: s.url, kind: s.kind })),
+    sources: e.sources.map((s) => ({
+      title: s.title,
+      url: s.url,
+      kind: s.kind,
+      snippet: s.snippet ?? null,
+      date: s.date ?? null,
+    })),
   }));
 
   const h2hBlock = h2h
@@ -118,39 +120,54 @@ export async function synthesizeWithLlm(
       `LLM returned unusable response: ${err instanceof Error ? err.message : "parse error"}`
     );
   }
-  if (!Array.isArray(parsed.entities) || typeof parsed.verdict !== "string") {
+  if (
+    !Array.isArray(parsed.entities) ||
+    typeof parsed.verdict !== "string" ||
+    !parsed.verdict.trim()
+  ) {
     throw new Error("LLM response failed schema validation (entities/verdict missing)");
   }
 
-  // Graft the authoritative health objects back onto the LLM entities by name,
-  // so health scores/badges survive even if the model drops them.
-  const byName = new Map(entities.map((e) => [e.name.toLowerCase(), e]));
-  const mergedEntities: EntityResult[] = (parsed.entities as EntityResult[]).map((pe) => {
-    const orig = byName.get(String(pe.name ?? "").toLowerCase());
-    return { ...pe, health: orig?.health };
+  // The model can improve prose, but cannot replace measured fields or the
+  // source ledger. Merge only bounded summaries into authoritative entities.
+  const modelEntities = parsed.entities as Array<{ name?: string; summary?: string }>;
+  const safeEntities = entities.map((entity) => {
+    const generated = modelEntities.find(
+      (candidate) => candidate.name?.toLowerCase() === entity.name.toLowerCase()
+    );
+    return {
+      ...entity,
+      summary:
+        typeof generated?.summary === "string" && generated.summary.trim()
+          ? generated.summary.trim().slice(0, 800)
+          : entity.summary,
+    };
   });
 
-  const table = Array.isArray(parsed.comparisonTable) ? [...parsed.comparisonTable] : [];
-  if (!table.some((r) => /maintenance|health/i.test(r.aspect ?? ""))) {
-    table.push({ aspect: "Maintenance health", values: mergedEntities.map(healthRowValue) });
-  }
-
-  // Preserve head-to-head sources on the first entity (dedupe by URL).
-  if (h2h && h2h.snippets.length > 0 && mergedEntities.length > 0) {
-    const seen = new Set(mergedEntities[0].sources.map((s: Source) => s.url));
-    for (const s of h2h.snippets) {
-      if (!seen.has(s.url)) {
-        mergedEntities[0].sources.push({ title: s.title, url: s.url, kind: "page" as const });
-        seen.add(s.url);
-      }
-    }
-  }
+  // Numeric/factual rows remain deterministic. Allow only a small number of
+  // structurally valid qualitative rows from the model; malformed JSON can
+  // never crash the React table or Markdown export.
+  const baseline = buildExtractiveReport(query, entities, creditsUsed, h2h);
+  const qualitativeRows: ComparisonRow[] = Array.isArray(parsed.comparisonTable)
+    ? parsed.comparisonTable
+        .filter((row): row is ComparisonRow =>
+          Boolean(
+            row &&
+              typeof row.aspect === "string" &&
+              /head-to-head|trade-?offs?|migration|best for|use case/i.test(row.aspect) &&
+              Array.isArray(row.values) &&
+              row.values.length === entities.length &&
+              row.values.every((value) => typeof value === "string")
+          )
+        )
+        .slice(0, 2)
+    : [];
 
   return {
     query,
-    entities: mergedEntities,
-    comparisonTable: table,
-    verdict: parsed.verdict,
+    entities: safeEntities,
+    comparisonTable: [...baseline.comparisonTable, ...qualitativeRows],
+    verdict: parsed.verdict.trim().slice(0, 2000),
     creditsUsed,
     generatedAt: new Date().toISOString(),
     mode: "llm",

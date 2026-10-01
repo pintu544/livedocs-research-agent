@@ -30,6 +30,10 @@ app.post("/api/research", async (req, res) => {
     res.status(400).json({ error: "Missing 'query' in request body." });
     return;
   }
+  if (query.length > 200) {
+    res.status(400).json({ error: "Query is too long. Keep it under 200 characters." });
+    return;
+  }
   if (!process.env.SERPAPI_API_KEY) {
     res.status(500).json({
       error:
@@ -42,7 +46,12 @@ app.post("/api/research", async (req, res) => {
     "Content-Type": "text/event-stream",
     "Cache-Control": "no-cache",
     Connection: "keep-alive",
+    "X-Accel-Buffering": "no",
   });
+  res.flushHeaders();
+
+  // Keep proxies from closing the connection during throttled search calls.
+  const heartbeat = setInterval(() => res.write(": keep-alive\n\n"), 15_000);
 
   const send = (step: string, detail?: string) => {
     const msg: ProgressMsg = { step, detail };
@@ -60,6 +69,7 @@ app.post("/api/research", async (req, res) => {
     const msg: ProgressMsg = { step: "error", error: message };
     res.write(`data: ${JSON.stringify(msg)}\n\n`);
   } finally {
+    clearInterval(heartbeat);
     res.end();
   }
 });
