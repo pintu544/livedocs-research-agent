@@ -1,5 +1,7 @@
 # LiveDocs Research Agent
 
+[![CI](https://github.com/pintu544/livedocs-research-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/pintu544/livedocs-research-agent/actions/workflows/ci.yml)
+
 **SerpApi India Hackathon 2026 · AI Agents track · Solo entry by Pintu Kumar**
 
 An AI research assistant that compares libraries and tools using **live** documentation,
